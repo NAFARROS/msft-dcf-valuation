@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>MSFT DCF Analysis — Manuel Carvalhinha Alves Costa</title>
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+<style>
+:root {
+  --navy:  #000C3F;
+  --steel: #132C57;
+  --blue:  #4472C4;
+  --light: #EEF2F9;
+  --white: #ffffff;
+  --dgrey: #444444;
+  --lgrey: #888888;
+  --mgrey: #cccccc;
+  --red:   #C0392B;
+  --green: #1E7B34;
+  --bg:    #f5f7fc;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', Helvetica, Arial, sans-serif; background: var(--bg); color: var(--dgrey); line-height: 1.6; }
+
+/* ── NAV ── */
+nav {
+  position: sticky; top: 0; z-index: 100;
+  background: var(--navy); display: flex; align-items: center;
+  border-bottom: 3px solid var(--blue); flex-wrap: wrap;
+}
+nav .brand { padding: 13px 20px; font-weight: 700; font-size: 13px; color: white; border-right: 1px solid var(--steel); white-space: nowrap; }
+nav a { color: #a8c4e0; text-decoration: none; padding: 14px 15px; font-size: 12px; transition: background .2s, color .2s; white-space: nowrap; }
+nav a:hover, nav a.active { background: var(--steel); color: white; }
+
+/* ── HERO ── */
+.hero { background: linear-gradient(135deg, var(--navy) 0%, var(--steel) 100%); padding: 48px 5% 40px; border-bottom: 3px solid var(--blue); }
+.hero-tag { display: inline-block; background: var(--blue); color: white; font-size: 10px; font-weight: 700; letter-spacing: 1.5px; padding: 4px 12px; border-radius: 2px; margin-bottom: 16px; text-transform: uppercase; }
+.hero h1 { font-size: clamp(22px, 4vw, 34px); color: white; font-weight: 700; margin-bottom: 4px; }
+.hero .ticker { font-size: 15px; color: #7EB3E8; margin-bottom: 6px; }
+.hero .subtitle { font-size: 13px; color: #a8c4e0; margin-bottom: 28px; }
+.verdict-strip { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 28px; }
+.vcard { background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.12); border-radius: 6px; padding: 14px 22px; text-align: center; min-width: 150px; }
+.vcard .vlabel { font-size: 10px; color: #7EB3E8; letter-spacing: .5px; text-transform: uppercase; margin-bottom: 6px; }
+.vcard .vval { font-size: 22px; font-weight: 700; color: white; }
+.vcard.primary { border-color: var(--blue); background: rgba(68,114,196,.2); }
+.vcard.verdict .vval { color: var(--red); font-size: 18px; }
+.meta-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px; }
+.meta-pill { background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1); border-radius: 4px; padding: 8px 14px; font-size: 12px; color: #c8d8ee; }
+.meta-pill b { color: white; }
+
+/* ── SECTIONS ── */
+section { padding: 42px 5%; border-bottom: 1px solid #dde4f0; background: white; }
+section:nth-child(even) { background: var(--bg); }
+.section-label { display: inline-block; background: var(--navy); color: white; font-size: 10px; font-weight: 700; letter-spacing: 1.5px; padding: 3px 10px; border-radius: 2px; margin-bottom: 10px; text-transform: uppercase; }
+h2 { font-size: 20px; color: var(--navy); font-weight: 700; margin-bottom: 4px; }
+h3 { font-size: 14px; color: var(--steel); font-weight: 600; margin: 22px 0 8px; border-left: 3px solid var(--blue); padding-left: 10px; }
+.divider { height: 2px; background: linear-gradient(90deg, var(--blue), transparent); border: none; margin-bottom: 16px; }
+p { color: var(--dgrey); font-size: 14px; margin-bottom: 10px; }
+
+/* ── CALLOUT ── */
+.callout { background: var(--light); border-left: 4px solid var(--blue); border-radius: 0 6px 6px 0; padding: 14px 18px; margin: 14px 0; font-size: 13.5px; color: var(--steel); line-height: 1.6; }
+
+/* ── TABLES ── */
+.tbl-wrap { overflow-x: auto; margin: 10px 0 18px; border-radius: 6px; border: 1px solid #dde4f0; box-shadow: 0 1px 4px rgba(0,0,0,.06); }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+thead tr { background: var(--navy); }
+thead th { color: white; font-weight: 600; padding: 10px 14px; text-align: left; white-space: nowrap; }
+tbody tr:nth-child(even) { background: var(--light); }
+tbody tr:hover { background: #dce6f5; transition: background .15s; }
+td { padding: 9px 14px; border-bottom: 1px solid #dde4f0; vertical-align: middle; }
+td.bold { font-weight: 700; }
+td.red  { color: var(--red); font-weight: 700; }
+td.green{ color: var(--green); font-weight: 700; }
+td.blue { color: var(--blue); font-weight: 700; }
+tr.hl td { background: var(--light); font-weight: 700; color: var(--navy); }
+tr.hl-green td { background: #e8f4e8; font-weight: 700; color: var(--green); }
+tr.hl-red td   { background: #fdecea; }
+th.base, td.base { background: var(--blue) !important; color: white !important; font-weight: 700 !important; }
+td.base-row { background: var(--light); font-weight: 700; }
+
+/* ── SENSITIVITY INTERACTIVE ── */
+.sens-wrap { position: relative; }
+.sens-tooltip { position: absolute; background: var(--navy); color: white; padding: 6px 12px; border-radius: 4px; font-size: 12px; pointer-events: none; opacity: 0; transition: opacity .2s; white-space: nowrap; z-index: 10; }
+td.sens-cell { cursor: pointer; transition: background .15s; }
+td.sens-cell:hover { background: var(--blue) !important; color: white !important; font-weight: 700; }
+
+/* ── SCENARIO TOGGLE ── */
+.toggle-row { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+.toggle-btn { padding: 7px 20px; border-radius: 20px; border: 2px solid var(--blue); background: white; color: var(--blue); font-weight: 600; font-size: 13px; cursor: pointer; transition: all .2s; }
+.toggle-btn.active { background: var(--blue); color: white; }
+.scenario-data { display: none; }
+.scenario-data.active { display: table-row; }
+
+/* ── SKILLS GRID ── */
+.skills-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 8px; margin-top: 12px; }
+.skill-card { background: white; border: 1px solid #dde4f0; border-left: 3px solid var(--blue); border-radius: 0 6px 6px 0; padding: 12px 16px; font-size: 13px; color: var(--dgrey); }
+.skill-card::before { content: "✓ "; color: var(--blue); font-weight: 700; }
+
+/* ── INSIGHT CARDS ── */
+.insight-grid { display: grid; gap: 10px; margin-top: 10px; }
+.insight-card { background: var(--light); border-left: 4px solid var(--blue); border-radius: 0 6px 6px 0; padding: 14px 18px; }
+.insight-card h4 { color: var(--navy); font-size: 13px; margin-bottom: 5px; }
+.insight-card p  { margin: 0; font-size: 13px; color: var(--steel); }
+
+/* ── PROGRESS BARS (FCFF) ── */
+.bar-wrap { margin: 4px 0; }
+.bar-track { background: #dde4f0; border-radius: 4px; height: 8px; overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 4px; background: var(--blue); transition: width 1s ease; }
+
+/* ── CHART ── */
+.chart-card { background: white; border: 1px solid #dde4f0; border-radius: 8px; padding: 16px; margin: 16px 0; box-shadow: 0 1px 4px rgba(0,0,0,.06); }
+
+/* ── FOOTER ── */
+footer { background: var(--navy); padding: 24px 5%; text-align: center; font-size: 12px; color: var(--lgrey); border-top: 3px solid var(--blue); }
+footer b { color: #a8c4e0; }
+
+/* ── PRINT ── */
+@media print {
+  nav { display: none; }
+  section { break-inside: avoid; }
+}
+@media (max-width: 600px) {
+  .vcard { min-width: 120px; padding: 10px 14px; }
+  nav a { padding: 11px 10px; font-size: 11px; }
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="brand">MSFT · DCF Analysis</div>
+  <a href="#memo" class="active">Executive Memo</a>
+  <a href="#scenario">Scenarios</a>
+  <a href="#sensitivity">Sensitivity</a>
+  <a href="#casestudy">Case Study</a>
+  <a href="#insights">Insights</a>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-tag">Equity Research · Portfolio Piece</div>
+  <div style="display:flex;align-items:center;margin-bottom:2px;"><svg width="48" height="48" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" style="display:inline-block;vertical-align:middle;margin-right:14px;flex-shrink:0;">
+  <rect x="1" y="1" width="21" height="21" fill="#F25022"/>
+  <rect x="26" y="1" width="21" height="21" fill="#7FBA00"/>
+  <rect x="1" y="26" width="21" height="21" fill="#00A4EF"/>
+  <rect x="26" y="26" width="21" height="21" fill="#FFB900"/>
+</svg><h1 style="margin-bottom:0">Microsoft Corporation</h1></div>
+  <div class="ticker">MSFT: NASDAQ</div>
+  <div class="subtitle">Intrinsic Value Analysis — Discounted Cash Flow Model</div>
+
+  <div class="verdict-strip">
+    <div class="vcard primary">
+      <div class="vlabel">GGM Implied Price · Primary</div>
+      <div class="vval">$385</div>
+    </div>
+    <div class="vcard">
+      <div class="vlabel">Exit Multiple · Cross-Check</div>
+      <div class="vval">$574</div>
+    </div>
+    <div class="vcard">
+      <div class="vlabel">Market Price · 30 Jun 2025</div>
+      <div class="vval">$497</div>
+    </div>
+    <div class="vcard verdict">
+      <div class="vlabel">Verdict · GGM Basis</div>
+      <div class="vval">OVERVALUED</div>
+    </div>
+  </div>
+
+  <div class="meta-grid">
+    <div class="meta-pill"><b>Analyst:</b> Manuel Carvalhinha Alves Costa</div>
+    <div class="meta-pill"><b>Valuation Date:</b> 30 June 2025</div>
+    <div class="meta-pill"><b>Analysis Date:</b> May 2026</div>
+    <div class="meta-pill"><b>Model:</b> Integrated 5-Year DCF · 13 Tabs</div>
+    <div class="meta-pill"><b>WACC:</b> 8.12% · g: 3.0% · Exit Multiple: 20×</div>
+  </div>
+</div>
+
+<!-- PART I: EXECUTIVE MEMO -->
+<section id="memo">
+  <div class="section-label">Part I</div>
+  <h2>Executive Memo</h2>
+  <hr class="divider"/>
+
+  <h3>Valuation Conclusion</h3>
+  <div class="callout">
+    <b>Primary Method (GGM):</b> Intrinsic value of <b>$385/share</b> — a 23% discount to the June 2025 market price of $497. On this basis, Microsoft is <b>OVERVALUED</b> at the valuation date. The Exit Multiple method ($574) is presented as a cross-check only, anchoring to current market pricing of mature cash flows rather than long-run fundamental value.
+  </div>
+
+  <h3>Core Thesis</h3>
+  <p>The thesis is a timing bet, not a quality bet. Microsoft's business quality is not in question — EBIT margins have expanded from 41.6% in FY2021 to 45.6% in FY2025, and the company generates over $136B in annual operating cash flow. The valuation question is whether the market correctly prices the duration and magnitude of the current CapEx suppression cycle.</p>
+  <p>The base case models CapEx normalisation from 22% of revenue in FY2026 to 12.5% by FY2030, consistent with Microsoft's pre-AI historical profile (FY2022: 12.0%, FY2023: 13.3%). This drives FCFF expansion from $83B to $172B — a 107% increase over five years and the mechanical engine of the bull thesis for long-term holders.</p>
+
+  <h3>Valuation Summary</h3>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>Method</th><th>Implied Price (USD)</th><th>vs. Market ($497)</th><th>Role</th></tr></thead>
+      <tbody>
+        <tr><td><b>Gordon Growth Model</b></td><td class="red bold">$385</td><td class="red">−23%</td><td><b>Primary method</b></td></tr>
+        <tr><td>Exit Multiple (20× EV/EBITDA)</td><td class="green bold">$574</td><td class="green">+15%</td><td style="color:var(--lgrey)">Cross-check only</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- SCENARIO TOGGLE -->
+<section id="scenario">
+  <div class="section-label">Scenarios</div>
+  <h2>Scenario Analysis</h2>
+  <hr class="divider"/>
+  <p>Use the toggle to highlight each scenario. All three cases are driven primarily by the CapEx normalisation assumption.</p>
+
+  <div class="toggle-row">
+    <button class="toggle-btn" onclick="setScenario('bear')">🐻 Bear</button>
+    <button class="toggle-btn active" onclick="setScenario('base')">⚖️ Base</button>
+    <button class="toggle-btn" onclick="setScenario('bull')">🐂 Bull</button>
+  </div>
+
+  <div class="tbl-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Input</th>
+          <th id="th-bear">Bear</th>
+          <th id="th-base" class="base">Base ★</th>
+          <th id="th-bull">Bull</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Revenue CAGR FY26–30</td><td id="bear-1">~9%</td><td id="base-1" class="base">~11%</td><td id="bull-1">~13%</td></tr>
+        <tr><td>EBIT Margin FY30</td><td id="bear-2">44%</td><td id="base-2" class="base">46%</td><td id="bull-2">48%</td></tr>
+        <tr><td>CapEx % Revenue FY30</td><td id="bear-3">22%</td><td id="base-3" class="base">12.5%</td><td id="bull-3">11%</td></tr>
+        <tr><td>Terminal Growth Rate (g)</td><td id="bear-4">2.0%</td><td id="base-4" class="base">3.0%</td><td id="bull-4">3.5%</td></tr>
+        <tr><td>Exit EV/EBITDA Multiple</td><td id="bear-5">16×</td><td id="base-5" class="base">20×</td><td id="bull-5">24×</td></tr>
+        <tr class="hl-red">
+          <td><b>GGM Implied Price</b></td>
+          <td id="bear-6" class="red bold">$222</td>
+          <td id="base-6" class="base">$385</td>
+          <td id="bull-6" style="color:var(--green);font-weight:700">$494</td>
+        </tr>
+        <tr>
+          <td>Exit Multiple Implied</td>
+          <td id="bear-7">$411</td><td id="base-7" class="base">$574</td><td id="bull-7">$764</td>
+        </tr>
+        <tr class="hl">
+          <td><b>Verdict (GGM)</b></td>
+          <td id="bear-8" class="red">Overvalued</td>
+          <td id="base-8" class="base">Overvalued</td>
+          <td id="bull-8" style="color:var(--green);font-weight:700">Fairly Valued</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Scenario summary callout — updates dynamically -->
+  <div id="scenario-callout" class="callout"></div>
+
+  <!-- Interactive scenario chart -->
+  <div class="chart-card">
+    <div id="scenario-chart" style="height:340px;"></div>
+  </div>
+</section>
+
+<!-- SENSITIVITY -->
+<section id="sensitivity">
+  <div class="section-label">Sensitivity</div>
+  <h2>Sensitivity Analysis — GGM Implied Price (USD)</h2>
+  <hr class="divider"/>
+  <p>Hover over any cell to see the implied upside or downside vs. the market price of <b>$497</b>. The base case (WACC 8.12%, g 3.0%) is highlighted in blue.</p>
+
+  <div class="tbl-wrap sens-wrap">
+    <div class="sens-tooltip" id="sens-tip"></div>
+    <table id="sens-table">
+      <thead>
+        <tr>
+          <th>WACC \ g</th>
+          <th>2.0%</th><th>2.5%</th>
+          <th class="base">3.0% ★</th>
+          <th>3.5%</th><th>4.0%</th>
+        </tr>
+      </thead>
+      <tbody id="sens-body"></tbody>
+    </table>
+  </div>
+
+  <div class="chart-card">
+    <div id="sens-chart" style="height:340px;"></div>
+  </div>
+
+  <h3>Key Observations</h3>
+  <ol style="margin-left:20px; font-size:14px; color:var(--dgrey); line-height:1.8;">
+    <li>Terminal growth rate is the dominant variable — a 200bps move in g at base-case WACC produces a <b>$135/share range ($331–$466)</b>.</li>
+    <li>WACC is the second most sensitive input — a 200bps increase at base-case g of 3.0% compresses implied price by <b>$162/share ($482 → $320)</b>.</li>
+    <li>The $497 market price requires a terminal growth rate <b>above 4.0%</b> under the WACC scenario for the base case — confirming the overvaluation finding is robust.</li>
+    <li>The exit multiple cross-check at 20× implies $574, above the entire GGM base-case WACC row, reflecting <b>market pricing of AI optionality</b> not captured in the GGM's normalised cash flow assumption.</li>
+  </ol>
+</section>
+
+<!-- PART II: CASE STUDY -->
+<section id="casestudy">
+  <div class="section-label">Part II</div>
+  <h2>Portfolio Case Study</h2>
+  <hr class="divider"/>
+
+  <h3>Project Overview</h3>
+  <div class="tbl-wrap">
+    <table>
+      <tbody>
+        <tr><td class="bold" style="width:160px;color:var(--navy)">Objective</td><td>Build an institutional-grade DCF to estimate MSFT intrinsic value anchored to the FY2025 10-K</td></tr>
+        <tr><td class="bold" style="color:var(--navy)">Deliverable</td><td>13-tab Excel model: 3-statement historical (FY2021–25), 5Y forecast, WACC, FCFF build, EV bridge, scenario toggle, sensitivity, executive summary</td></tr>
+        <tr><td class="bold" style="color:var(--navy)">Data Sources</td><td>SEC EDGAR 10-K (FY2021–25), Damodaran implied ERP, FRED 10Y Treasury, Yahoo Finance / Bloomberg, MSFT long-term bond yields</td></tr>
+        <tr><td class="bold" style="color:var(--navy)">Valuation Date</td><td>30 June 2025 — all balance sheet inputs and market price anchored to this date</td></tr>
+        <tr><td class="bold" style="color:var(--navy)">Scenario Toggle</td><td>Single driver switch (Bear / Base / Bull) cascades automatically through all 13 tabs</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Revenue Architecture — Three-Segment Build</h3>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>Segment</th><th>FY2025 Revenue</th><th>Growth Logic (FY26–30)</th><th>FY2030E</th></tr></thead>
+      <tbody>
+        <tr><td>Productivity &amp; Business Processes</td><td>$120.8B</td><td>12.5% → 8.0% — Copilot ramp, M365 SMB penetration</td><td class="bold">$195.4B</td></tr>
+        <tr><td>Intelligent Cloud</td><td>$106.3B</td><td>19.0% → 11.0% — Azure AI workloads, hyperscaler share</td><td class="bold">$213.4B</td></tr>
+        <tr><td>More Personal Computing</td><td>$54.6B</td><td>6.0% → 4.0% — Bing/Copilot offsets PC hardware decline</td><td class="bold">$69.1B</td></tr>
+        <tr class="hl"><td><b>Total</b></td><td><b>$281.7B</b></td><td><b>~11.1% CAGR</b></td><td><b>$477.8B</b></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>FCFF Forecast</h3>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>Metric</th><th>FY2026E</th><th>FY2027E</th><th>FY2028E</th><th>FY2029E</th><th>FY2030E</th></tr></thead>
+      <tbody>
+        <tr><td>Total Revenue ($B)</td><td>320.3</td><td>359.6</td><td>400.0</td><td>439.6</td><td>477.8</td></tr>
+        <tr><td>EBIT Margin</td><td>46.0%</td><td>46.0%</td><td>46.0%</td><td>46.0%</td><td>46.0%</td></tr>
+        <tr><td>CapEx % Revenue</td><td>22.0%</td><td>22.0%</td><td>18.0%</td><td>15.0%</td><td>12.5%</td></tr>
+        <tr class="hl">
+          <td><b>FCFF ($B)</b></td>
+          <td><b>83.1</b>
+            <div class="bar-wrap"><div class="bar-track"><div class="bar-fill" style="width:48%"></div></div></div>
+          </td>
+          <td><b>94.0</b>
+            <div class="bar-wrap"><div class="bar-track"><div class="bar-fill" style="width:55%"></div></div></div>
+          </td>
+          <td><b>121.1</b>
+            <div class="bar-wrap"><div class="bar-track"><div class="bar-fill" style="width:70%"></div></div></div>
+          </td>
+          <td><b>146.9</b>
+            <div class="bar-wrap"><div class="bar-track"><div class="bar-fill" style="width:85%"></div></div></div>
+          </td>
+          <td><b>172.3</b>
+            <div class="bar-wrap"><div class="bar-track"><div class="bar-fill" style="width:100%"></div></div></div>
+          </td>
+        </tr>
+        <tr class="hl-green"><td><b>FCF Margin</b></td><td>25.9%</td><td>26.1%</td><td>30.3%</td><td>33.4%</td><td>36.1%</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>CapEx normalisation is the single highest-impact assumption in the model. By FY2030, CapEx at 12.5% of revenue is consistent with Microsoft's pre-AI historical baseline (FY2022: 12.0%, FY2023: 13.3%), driving FCF margin recovery from 25.9% to 36.1%.</p>
+
+  <h3>WACC Derivation</h3>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>Input</th><th>Value</th><th>Source / Rationale</th></tr></thead>
+      <tbody>
+        <tr><td>Risk-Free Rate (Rf)</td><td>4.42%</td><td>10Y US Treasury yield — FRED, as of valuation date</td></tr>
+        <tr><td>Equity Risk Premium (ERP)</td><td>4.18%</td><td>Damodaran implied ERP — updated annually</td></tr>
+        <tr><td>Beta (β)</td><td>0.90</td><td>5Y weekly regression vs. S&amp;P 500, re-levered; adjusted for net cash balance sheet</td></tr>
+        <tr><td>Cost of Equity (Ke)</td><td>8.18%</td><td>CAPM: 4.42% + 0.90 × 4.18%</td></tr>
+        <tr><td>Pre-tax Cost of Debt (Kd)</td><td>4.77%</td><td>YTM on MSFT long-term bond yields</td></tr>
+        <tr><td>After-tax Cost of Debt</td><td>3.91%</td><td>Kd × (1 − 18% effective tax rate)</td></tr>
+        <tr><td>Equity Weight</td><td>98.55%</td><td>Market-value weights per CFA/IB convention</td></tr>
+        <tr><td>Debt Weight</td><td>1.45%</td><td>Total Debt / (Market Cap + Total Debt)</td></tr>
+        <tr class="hl"><td><b>WACC</b></td><td><b>8.12%</b></td><td><b>Cross-check vs. Assumptions tab: consistent ✓</b></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- INSIGHTS -->
+<section id="insights">
+  <div class="section-label">Insights &amp; Skills</div>
+  <h2>Key Analytical Insights</h2>
+  <hr class="divider"/>
+
+  <div class="insight-grid">
+    <div class="insight-card">
+      <h4>CapEx cycle is the valuation swing factor</h4>
+      <p>The difference between bear ($222) and bull ($494) GGM implied prices is driven almost entirely by CapEx assumptions. At 22% through FY2030, FCF margin stays suppressed at ~26%. At 12.5% (base), FCF margin recovers to 36%+, consistent with Microsoft's pre-AI cash generation profile.</p>
+    </div>
+    <div class="insight-card">
+      <h4>The market requires an unrealistic terminal growth assumption to justify $497</h4>
+      <p>Justifying the current market price requires g above 4.0% under any plausible WACC — well above long-run US nominal GDP growth, leaving no margin for error.</p>
+    </div>
+    <div class="insight-card">
+      <h4>Exit multiple is structurally above GGM in this environment</h4>
+      <p>The $189 gap between $574 (exit multiple) and $385 (GGM) represents the market's implicit premium for AI optionality — the portion of current pricing that cannot be explained by normalised long-run cash flows.</p>
+    </div>
+    <div class="insight-card">
+      <h4>Post-valuation price action directionally validates the model</h4>
+      <p>The ~10% decline from $497 to ~$450 between June 2025 and May 2026 is consistent with the overvaluation finding. The GGM verdict of −23% implied more correction than has occurred, but the directional signal was correct.</p>
+    </div>
+  </div>
+
+  <h3>Skills Demonstrated</h3>
+  <div class="skills-grid">
+    <div class="skill-card">Full integrated 3-statement model built from 10-K source data (FY2021–FY2025)</div>
+    <div class="skill-card">Segment-level revenue forecasting with explicit, documented growth rationale</div>
+    <div class="skill-card">WACC derivation using market-value weights, Damodaran ERP, and re-levered beta</div>
+    <div class="skill-card">FCFF waterfall with correct sign conventions, NWC schedule, and CapEx roll-forward</div>
+    <div class="skill-card">Dual terminal value methods (GGM primary; exit multiple as cross-check)</div>
+    <div class="skill-card">Single-driver scenario toggle (Bear / Base / Bull) cascading through all 13 tabs</div>
+    <div class="skill-card">2D sensitivity analysis across WACC × g and WACC × EV/EBITDA multiple</div>
+    <div class="skill-card">Investment memo writing calibrated for sophisticated financial audiences</div>
+    <div class="skill-card">PP&amp;E roll-forward and CapEx normalisation modelling with documented rationale <em>(simplified D&amp;A)</em></div>
+  </div>
+
+  <div style="margin-top:32px; padding-top:16px; border-top:1px solid #dde4f0;">
+    <p style="font-size:11px; color:var(--lgrey); font-style:italic;">
+      This analysis was prepared for educational and portfolio purposes only. It does not constitute investment advice or a solicitation to buy or sell securities of Microsoft Corporation. All projections are the analyst's own estimates based on publicly available information as of the valuation date (30 June 2025). Actual results may differ materially from those projected.
+    </p>
+  </div>
+</section>
+
+<footer>
+  <p><b>Manuel Carvalhinha Alves Costa</b> · Freelance Financial Modelling &amp; Valuation Analyst</p>
+  <p style="margin-top:6px; font-size:11px;">MSFT Intrinsic Value Analysis · Valuation Date: 30 June 2025 · Analysis Date: May 2026</p>
+</footer>
+
+<script>
+// ── SENSITIVITY TABLE BUILD ──────────────────────────────────────────────────
+const waccVals = [7.12, 7.62, 8.12, 8.62, 9.12];
+const gVals    = [2.0,  2.5,  3.0,  3.5,  4.0];
+const prices   = [
+  [399, 436, 482, 542, 619],
+  [362, 392, 429, 474, 532],
+  [331, 356, 385, 421, 466],
+  [305, 325, 350, 379, 414],
+  [282, 300, 320, 344, 372],
+];
+const market = 497;
+const tbody = document.getElementById('sens-body');
+const tip   = document.getElementById('sens-tip');
+prices.forEach((row, ri) => {
+  const tr = document.createElement('tr');
+  if (ri === 2) tr.className = 'base-row';
+  const th = document.createElement('td');
+  th.textContent = ri === 2 ? '8.12% ★' : waccVals[ri].toFixed(2) + '%';
+  if (ri === 2) th.style.fontWeight = '700';
+  tr.appendChild(th);
+  row.forEach((val, ci) => {
+    const td = document.createElement('td');
+    const isBase = ri === 2 && ci === 2;
+    td.textContent = val;
+    td.className = 'sens-cell' + (isBase ? ' base' : '');
+    const pct = (((val - market) / market) * 100).toFixed(1);
+    const dir = val > market ? '+' : '';
+    td.dataset.tip = `$${val} · ${dir}${pct}% vs. $${market} market`;
+    td.addEventListener('mouseenter', e => {
+      tip.textContent = e.target.dataset.tip;
+      tip.style.opacity = 1;
+    });
+    td.addEventListener('mousemove', e => {
+      const rect = e.target.closest('.sens-wrap').getBoundingClientRect();
+      tip.style.left = (e.clientX - rect.left + 12) + 'px';
+      tip.style.top  = (e.clientY - rect.top  - 32) + 'px';
+    });
+    td.addEventListener('mouseleave', () => { tip.style.opacity = 0; });
+    tr.appendChild(td);
+  });
+  tbody.appendChild(tr);
+});
+
+// ── SENSITIVITY HEATMAP CHART ────────────────────────────────────────────────
+const zText = prices.map(r => r.map(v => '$' + v));
+Plotly.newPlot('sens-chart', [{
+  type: 'heatmap',
+  z: prices,
+  x: gVals.map(g => 'g=' + g + '%'),
+  y: waccVals.map(w => 'WACC=' + w + '%'),
+  text: zText, texttemplate: '%{text}',
+  colorscale: [[0,'#000C3F'],[0.5,'#4472C4'],[1,'#a8c4e0']],
+  showscale: true,
+  hovertemplate: '<b>%{y} | %{x}</b><br>Implied Price: %{text}<extra></extra>'
+}], {
+  paper_bgcolor: 'white', plot_bgcolor: 'white',
+  font: { color: '#444', family: 'Segoe UI, sans-serif', size: 12 },
+  title: { text: 'GGM Sensitivity — WACC vs. Terminal Growth Rate', font: { size: 14, color: '#000C3F' }, x: 0.5 },
+  xaxis: { title: 'Terminal Growth Rate' },
+  yaxis: { title: 'WACC' },
+  margin: { t: 50, b: 50, l: 100, r: 30 }, height: 340
+}, { responsive: true, displayModeBar: false });
+
+// ── SCENARIO TOGGLE ──────────────────────────────────────────────────────────
+const scenarioCallouts = {
+  bear: '<b>🐻 Bear Case — $222 GGM (−55% vs. market):</b> CapEx remains elevated at 22% through FY2030 with no normalisation. Revenue growth decelerates to ~9% CAGR and terminal growth is limited to 2.0%. FCF margin stays suppressed at ~26% throughout the forecast period.',
+  base: '<b>⚖️ Base Case — $385 GGM (−23% vs. market):</b> CapEx normalises from 22% to 12.5% by FY2030, consistent with pre-AI historical levels. Revenue grows at ~11% CAGR driven by Azure and Copilot. FCF margin recovers to 36.1% by FY2030.',
+  bull: '<b>🐂 Bull Case — $494 GGM (−1% vs. market):</b> Faster CapEx normalisation to 11% by FY2030 alongside stronger revenue growth of ~13% CAGR. Higher terminal growth rate of 3.5% reflecting durable AI tailwinds. FCF margin expands to ~38%+.'
+};
+let activeScenario = 'base';
+function setScenario(s) {
+  activeScenario = s;
+  document.querySelectorAll('.toggle-btn').forEach((b, i) => {
+    b.classList.toggle('active', ['bear','base','bull'][i] === s);
+  });
+  ['th-bear','th-base','th-bull'].forEach((id, i) => {
+    const el = document.getElementById(id);
+    const sc = ['bear','base','bull'][i];
+    el.className = sc === s ? 'base' : '';
+    el.textContent = sc === s ? sc.charAt(0).toUpperCase()+sc.slice(1)+' ★' : sc.charAt(0).toUpperCase()+sc.slice(1);
+  });
+  for (let i = 1; i <= 8; i++) {
+    ['bear','base','bull'].forEach(sc => {
+      const el = document.getElementById(sc+'-'+i);
+      if (!el) return;
+      if (sc === s) { el.classList.add('base'); }
+      else { el.classList.remove('base'); }
+    });
+  }
+  document.getElementById('scenario-callout').innerHTML = scenarioCallouts[s];
+  updateScenarioChart(s);
+}
+
+// ── SCENARIO CHART ───────────────────────────────────────────────────────────
+const scenarioChartData = {
+  bear: { ggm: 222, exit: 411 },
+  base: { ggm: 385, exit: 574 },
+  bull: { ggm: 494, exit: 764 }
+};
+function updateScenarioChart(s) {
+  const d = scenarioChartData[s];
+  const colors = { bear:'#C0392B', base:'#4472C4', bull:'#1E7B34' };
+  Plotly.react('scenario-chart', [
+    { type:'bar', name:'GGM (Primary)', x:['Bear','Base','Bull'],
+      y:[scenarioChartData.bear.ggm, scenarioChartData.base.ggm, scenarioChartData.bull.ggm],
+      marker:{color:['#C0392B','#4472C4','#1E7B34'], opacity: ['bear','base','bull'].map(sc => sc===s ? 1 : 0.35)},
+      text:['$222','$385','$494'], textposition:'outside',
+      hovertemplate:'<b>%{x} — GGM</b><br>$%{y}<extra></extra>' },
+    { type:'bar', name:'Exit Multiple', x:['Bear','Base','Bull'],
+      y:[scenarioChartData.bear.exit, scenarioChartData.base.exit, scenarioChartData.bull.exit],
+      marker:{color:['#C0392B','#4472C4','#1E7B34'], opacity: ['bear','base','bull'].map(sc => sc===s ? 0.5 : 0.15)},
+      text:['$411','$574','$764'], textposition:'outside',
+      hovertemplate:'<b>%{x} — Exit Multiple</b><br>$%{y}<extra></extra>' },
+  ], {
+    paper_bgcolor:'white', plot_bgcolor:'white',
+    font:{color:'#444', family:'Segoe UI, sans-serif'},
+    title:{text:'Implied Share Price by Scenario', font:{size:14, color:'#000C3F'}, x:0.5},
+    barmode:'group', bargap:0.25,
+    shapes:[{type:'line', x0:-0.5, x1:2.5, y0:497, y1:497,
+             line:{color:'#F39C12', width:2, dash:'dash'}}],
+    annotations:[{x:2.45, y:520, text:'Market $497', showarrow:false,
+                  font:{color:'#F39C12', size:11}}],
+    yaxis:{title:'Price (USD)', gridcolor:'#eee', range:[0, 900]},
+    xaxis:{title:'Scenario'},
+    legend:{orientation:'h', y:1.1, x:0.5, xanchor:'center'},
+    margin:{t:60, b:50, l:60, r:30}, height:340
+  }, {responsive:true, displayModeBar:false});
+}
+
+// ── NAV ACTIVE ON SCROLL ─────────────────────────────────────────────────────
+const sections = document.querySelectorAll('section[id]');
+const navLinks = document.querySelectorAll('nav a');
+window.addEventListener('scroll', () => {
+  let current = '';
+  sections.forEach(s => { if (window.scrollY >= s.offsetTop - 80) current = s.id; });
+  navLinks.forEach(a => { a.classList.toggle('active', a.getAttribute('href') === '#'+current); });
+});
+
+// ── INIT ─────────────────────────────────────────────────────────────────────
+setScenario('base');
+</script>
+</body>
+</html>
